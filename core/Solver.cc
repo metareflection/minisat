@@ -19,6 +19,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 **************************************************************************************************/
 
 #include <math.h>
+#include <iomanip>
 
 #include "mtl/Sort.h"
 #include "core/Solver.h"
@@ -65,7 +66,8 @@ Solver::Solver() :
   , garbage_frac     (opt_garbage_frac)
   , restart_first    (opt_restart_first)
   , restart_inc      (opt_restart_inc)
-
+  , log              ("mini.csv", std::fstream::out)
+  
     // Parameters (the rest):
     //
   , learntsize_factor((double)1/(double)3), learntsize_inc(1.1)
@@ -147,6 +149,7 @@ bool Solver::addClause_(vec<Lit>& ps)
     if (ps.size() == 0)
         return ok = false;
     else if (ps.size() == 1){
+        log_var(var(ps[0]), "force", sign(ps[0]) ? l_True : l_False);
         uncheckedEnqueue(ps[0]);
         return ok = (propagate() == CRef_Undef);
     }else{
@@ -352,6 +355,11 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
         out_btlevel       = level(var(p));
     }
 
+    for (unsigned int i = 0; i < out_learnt.size(); i++) {
+        log_var(var(out_learnt[i]), "learned",
+                sign(out_learnt[i]) ? l_True : l_False);
+    }
+
     for (int j = 0; j < analyze_toclear.size(); j++) seen[var(analyze_toclear[j])] = 0;    // ('seen[]' is now cleared)
 }
 
@@ -489,13 +497,24 @@ CRef Solver::propagate()
             // Did not find watch -- clause is unit under assignment:
             *j++ = w;
             if (value(first) == l_False){
+                
+                log_var(var(first), "conflict", value(var(first)));
+                for (unsigned int x = 0; x < c.size(); x++) {
+                    log_var(var(c[x]), "cclause", value(var(c[x])));
+                }
+                
                 confl = cr;
                 qhead = trail.size();
                 // Copy the remaining watches:
                 while (i < end)
                     *j++ = *i++;
-            }else
+            }else{
+                log_var(var(first), "unit", sign(first) ? l_True : l_False);
+                for (unsigned int x = 0; x < c.size(); x++)
+                    log_var(var(c[x]), "reason", sign(c[x]) ? l_True : l_False);
+
                 uncheckedEnqueue(first, cr);
+            }
 
         NextClause:;
         }
@@ -619,6 +638,10 @@ lbool Solver::search(int nof_conflicts)
     vec<Lit>    learnt_clause;
     starts++;
 
+    for (int x = 0; x < trail.size(); x++) {
+        log_var(var(trail[x]), "init", sign(trail[x]) ? l_True : l_False);
+    }
+
     for (;;){
         CRef confl = propagate();
         if (confl != CRef_Undef){
@@ -695,6 +718,8 @@ lbool Solver::search(int nof_conflicts)
                 if (next == lit_Undef)
                     // Model found:
                     return l_True;
+
+                log_var(var(next), "pick", sign(next) ? l_True : l_False);
             }
 
             // Increase decision level and enqueue 'next'
@@ -920,4 +945,14 @@ void Solver::garbageCollect()
         fprintf(stderr, "|  Garbage collection:   %12d bytes => %12d bytes             |\n", 
                ca.size()*ClauseAllocator::Unit_Size, to.size()*ClauseAllocator::Unit_Size);
     to.moveTo(ca);
+}
+
+
+void Solver::log_var(int var, std::string msg, lbool value) {
+    if (!log.is_open()) return;
+
+	log << std::setw(10) << var << ";";
+	log << std::setw(10) << msg << ";";
+	log << std::setw(6) << (value.isTrue() ? "true" : value.isFalse() ? "false" : "undef") << ";";
+	log << std::setw(6) << (polarity[var] ? "true" : "false") << std::endl;
 }

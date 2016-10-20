@@ -21,6 +21,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef Minisat_Solver_h
 #define Minisat_Solver_h
 
+#include <fstream>
+
 #include "mtl/Vec.h"
 #include "mtl/Heap.h"
 #include "mtl/Alg.h"
@@ -137,6 +139,9 @@ public:
     //
     uint64_t solves, starts, decisions, rnd_decisions, propagations, conflicts;
     uint64_t dec_vars, clauses_literals, learnts_literals, max_literals, tot_literals;
+
+    std::fstream log;
+    void log_var(int var, std::string msg, lbool value);
 
 protected:
 
