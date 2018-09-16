@@ -1,7 +1,7 @@
 # Notes: * if eq(...) is documented
 #        * if ne(...) is not, but the underlying language seems some sort of PS
 #        * multiline script does not seem to have interpolation enabled
-#        * 
+#        * parameters without value is implicitly ''
 
 jobs:
 - job: ${{ parameters.name }}
