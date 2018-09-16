@@ -5,11 +5,14 @@ jobs:
   - script: cmake -H. -BBuild
     displayName: 'Configure build'
 
-  - script: cmake --build Build
+  - script: |
+      cmake --build Build --config Debug
+      cmake --build Build --config Release
     displayName: 'Build tests'
 
   - script: |
       cd Build
       set CTEST_OUTPUT_ON_FAILURE=1
       ctest -j 4 -C Debug
+      ctest -j 4 -C Release
     displayName: 'Run tests'

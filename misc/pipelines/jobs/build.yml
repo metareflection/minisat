@@ -1,0 +1,31 @@
+# Notes: * if eq(...) is documented
+#        * if ne(...) is not, but the underlying language seems some sort of PS
+#        * multiline script does not seem to have interpolation enabled
+#        * 
+
+jobs:
+- job: ${{ parameters.name }}
+  pool: ${{ parameters.pool }}
+  steps:
+  - ${{ if ne(parameters.deps, '') }}:
+    - script: ${{ format('sudo apt-get install {0} --yes', parameters.deps) }}
+      displayName: 'Install deps'
+
+  - script: ${{ format('CXX={0} cmake -H. -Bbuild-debug -DCMAKE_BUILD_TYPE=Debug', parameters.CXX) }}
+    displayName: 'Configure debug build'
+
+  - script: ${{ format('CXX={0} cmake -H. -Bbuild-release -DCMAKE_BUILD_TYPE=Release', parameters.CXX) }}
+    displayName: 'Configure release build'
+
+  - script: |
+      cmake --build build-debug
+      cmake --build build-release
+    displayName: 'Build tests'
+  
+  - script: |
+      export CTEST_OUTPUT_ON_FAILURE=1
+      cd build-debug
+      ctest -j2
+      cd ../build-release
+      ctest -j2
+    displayName: 'Run tests'

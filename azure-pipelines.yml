@@ -1,19 +1,34 @@
 # Notes: Job names have to be alphanumeric, might contain '_',
 # and cannot start with number (WTF?)
 
+trigger:
+  branches:
+    include:
+      - '*'
+    exclude:
+      - dev-appveyor
+      - dev-travis
+  paths:
+    exclude:
+      - README.md
+
 jobs:
-  - template: jobs/build.yml
+  - template: misc/pipelines/jobs/build.yml
     parameters:
       name: 'OSX_build'
       pool:
         vmImage: 'macOs 10.13'
-  - template: jobs/build.yml
+      CXX: 'clang++'
+
+  - template: misc/pipelines/jobs/build.yml
     parameters:
       name: 'Linux_build'
       pool:
         vmImage: 'Ubuntu 16.04'
+      CXX: 'clang++-3.8'
+      deps: 'clang-3.8'
 
-  - template: jobs/winbuild.yml
+  - template: misc/pipelines/jobs/winbuild.yml
     parameters:
       name: 'Windows_build'
       pool:
