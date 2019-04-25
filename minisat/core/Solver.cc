@@ -272,24 +272,24 @@ Lit Solver::pickBranchLit()
 void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 {
     int pathC = 0;
-    Lit p     = lit_Undef;
+    Lit p = lit_Undef;
 
     // Generate conflict clause:
     //
     out_learnt.push();      // (leave room for the asserting literal)
-    int index   = trail.size() - 1;
+    int index = trail.size() - 1;
 
-    do{
+    do {
         assert(confl != CRef_Undef); // (otherwise should be UIP)
         Clause& c = ca[confl];
 
         if (c.learnt())
             claBumpActivity(c);
 
-        for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++){
+        for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++) {
             Lit q = c[j];
 
-            if (!seen[var(q)] && level(var(q)) > 0){
+            if (!seen[var(q)] && level(var(q)) > 0) {
                 varBumpActivity(var(q));
                 seen[var(q)] = 1;
                 if (level(var(q)) >= decisionLevel())
@@ -301,19 +301,19 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 
         // Select next clause to look at:
         while (!seen[var(trail[index--])]);
-        p     = trail[index+1];
+        p = trail[index + 1];
         confl = reason(var(p));
         seen[var(p)] = 0;
         pathC--;
 
-    }while (pathC > 0);
+    } while (pathC > 0);
     out_learnt[0] = ~p;
 
     // Simplify conflict clause:
     //
     int i, j;
     out_learnt.copyTo(analyze_toclear);
-    if (ccmin_mode == 2){
+    if (ccmin_mode == 2) {
         uint32_t abstract_level = 0;
         for (i = 1; i < out_learnt.size(); i++)
             abstract_level |= abstractLevel(var(out_learnt[i])); // (maintain an abstraction of levels involved in conflict)
@@ -322,21 +322,24 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
             if (reason(var(out_learnt[i])) == CRef_Undef || !litRedundant(out_learnt[i], abstract_level))
                 out_learnt[j++] = out_learnt[i];
 
-    }else if (ccmin_mode == 1){
-        for (i = j = 1; i < out_learnt.size(); i++){
+    }
+    else if (ccmin_mode == 1) {
+        for (i = j = 1; i < out_learnt.size(); i++) {
             Var x = var(out_learnt[i]);
 
             if (reason(x) == CRef_Undef)
                 out_learnt[j++] = out_learnt[i];
-            else{
+            else {
                 Clause& c = ca[reason(var(out_learnt[i]))];
                 for (int k = 1; k < c.size(); k++)
-                    if (!seen[var(c[k])] && level(var(c[k])) > 0){
+                    if (!seen[var(c[k])] && level(var(c[k])) > 0) {
                         out_learnt[j++] = out_learnt[i];
-                        break; }
+                        break;
+                    }
             }
         }
-    }else
+    }
+    else
         i = j = out_learnt.size();
 
     max_literals += out_learnt.size();
@@ -347,17 +350,21 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
     //
     if (out_learnt.size() == 1)
         out_btlevel = 0;
-    else{
-        int max_i = 1;
+    else {
+        int max_idx = 1;
+        int min_lvl = level(var(out_learnt[1]));
         // Find the first literal assigned at the next-highest level:
-        for (int i = 2; i < out_learnt.size(); i++)
-            if (level(var(out_learnt[i])) > level(var(out_learnt[max_i])))
-                max_i = i;
+        for (int idx = 2; idx < out_learnt.size(); idx++) {
+            if (level(var(out_learnt[idx])) > min_lvl) {
+                min_lvl = level(var(out_learnt[idx]));
+                max_idx = idx;
+            }
+        }
         // Swap-in this literal at index 1:
-        Lit p             = out_learnt[max_i];
-        out_learnt[max_i] = out_learnt[1];
-        out_learnt[1]     = p;
-        out_btlevel       = level(var(p));
+        Lit temp            = out_learnt[max_idx];
+        out_learnt[max_idx] = out_learnt[1];
+        out_learnt[1]       = temp;
+        out_btlevel         = min_lvl;
     }
 
     for (auto const& elem : analyze_toclear) {
@@ -377,12 +384,12 @@ bool Solver::litRedundant(Lit p, uint32_t abstract_levels)
         Clause& c = ca[reason(var(analyze_stack.last()))]; analyze_stack.pop();
 
         for (int i = 1; i < c.size(); i++){
-            Lit p  = c[i];
-            if (!seen[var(p)] && level(var(p)) > 0){
-                if (reason(var(p)) != CRef_Undef && (abstractLevel(var(p)) & abstract_levels) != 0){
-                    seen[var(p)] = 1;
-                    analyze_stack.push(p);
-                    analyze_toclear.push(p);
+            Lit cp  = c[i];
+            if (!seen[var(cp)] && level(var(cp)) > 0){
+                if (reason(var(cp)) != CRef_Undef && (abstractLevel(var(cp)) & abstract_levels) != 0){
+                    seen[var(cp)] = 1;
+                    analyze_stack.push(cp);
+                    analyze_toclear.push(cp);
                 }else{
                     for (int j = top; j < analyze_toclear.size(); j++)
                         seen[var(analyze_toclear[j])] = 0;
@@ -790,7 +797,7 @@ lbool Solver::solve_()
     int curr_restarts = 0;
     while (status == l_Undef){
         double rest_base = luby_restart ? luby(restart_inc, curr_restarts) : pow(restart_inc, curr_restarts);
-        status = search(rest_base * restart_first);
+        status = search(static_cast<int>(rest_base * restart_first));
         if (!withinBudget()) break;
         curr_restarts++;
     }

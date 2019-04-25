@@ -35,8 +35,8 @@ static const int buffer_size = 2097152;
 class StreamBuffer {
     std::unique_ptr<unsigned char[]> buf;
     FILE*         in;
-    int           pos;
-    int           size;
+    size_t        pos;
+    size_t        size;
 
     void assureLookahead() {
         if (pos >= size) {
@@ -53,8 +53,7 @@ public:
     }
 
     int  operator *  () const { return (pos >= size) ? EOF : buf[pos]; }
-    void operator ++ ()       { pos++; assureLookahead(); }
-    int  position    () const { return pos; }
+    void operator ++ ()       { ++pos; assureLookahead(); }
 };
 
 

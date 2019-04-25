@@ -88,8 +88,11 @@ if ( CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU" )
 endif()
 if ( CMAKE_CXX_COMPILER_ID MATCHES "MSVC" )
     target_compile_options( libminisat PRIVATE /W4 /wd4267 )
+    target_compile_definitions( libminisat PRIVATE _CRT_SECURE_NO_WARNINGS )
     target_compile_options( minisat PRIVATE /W4 /wd4267 )
+    target_compile_definitions( minisat PRIVATE _CRT_SECURE_NO_WARNINGS )
     target_compile_options( minisat-simp PRIVATE /W4 /wd4267 )
+    target_compile_definitions( minisat-simp PRIVATE _CRT_SECURE_NO_WARNINGS )
 endif()
 
 ###############
