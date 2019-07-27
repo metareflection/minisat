@@ -155,6 +155,28 @@ if (MINISAT_TEST_BENCHMARKS)
     endforeach(BENCHMARK)
 endif()
 
+#########
+# Tests
+##
+include(CTest)
+
+add_test(NAME xor_unique_solution
+    COMMAND minisat tests/xor_unique_solution.cnf
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+set_tests_properties(xor_unique_solution PROPERTIES
+    PASS_REGULAR_EXPRESSION "SAT.*1 -2 0")
+set_tests_properties(xor_unique_solution
+    PROPERTIES TIMEOUT 1)
+
+add_test(NAME xor_unsatisfiable
+    COMMAND minisat tests/xor_unsatisfiable.cnf
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+set_tests_properties(xor_unsatisfiable PROPERTIES
+    PASS_REGULAR_EXPRESSION "UNSAT")
+set_tests_properties(xor_unsatisfiable
+    PROPERTIES TIMEOUT 1)
+
+
 
 ###############
 # Installation
