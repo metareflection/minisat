@@ -7,6 +7,7 @@ project(MiniSat VERSION 2.2 LANGUAGES CXX)
 
 option(MINISAT_BUILD_TESTING "Build and run MiniSat's tests" ON)
 option(MINISAT_TEST_BENCHMARKS "Register benchmarks with CTest" OFF)
+option(MINISAT_MSVC_STATIC "Static linking under Microsoft Visual Studio" OFF)
 
 include(GNUInstallDirs)
 
@@ -90,6 +91,21 @@ if ( CMAKE_CXX_COMPILER_ID MATCHES "MSVC" )
     target_compile_options( libminisat PRIVATE /W4 /wd4267 )
     target_compile_options( minisat PRIVATE /W4 /wd4267 )
     target_compile_options( minisat-simp PRIVATE /W4 /wd4267 )
+
+    if (MINISAT_MSVC_STATIC) # This trick is take from:
+        # https://gitlab.kitware.com/cmake/community/wikis/FAQ#how-can-i-build-my-msvc-application-with-a-static-runtime
+        foreach(flag_var
+                CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+                CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+            if(${flag_var} MATCHES "/MD")
+                string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+            endif(${flag_var} MATCHES "/MD")
+        endforeach(flag_var)
+    endif()
+else()
+    if (MINISAT_MSVC_STATIC)
+        message(SEND_ERROR "MINISAT_MSVC_STATIC can only be used with Visual Studio")
+    endif()
 endif()
 
 ###############
