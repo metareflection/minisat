@@ -5,8 +5,21 @@
 cmake_minimum_required(VERSION 3.5)
 project(MiniSat VERSION 2.2 LANGUAGES CXX)
 
+# Check if minisat is being used directly or via add_subdirectory, but allow overriding
+if (NOT DEFINED MINISAT_MASTER_PROJECT)
+    if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+        set(MINISAT_MASTER_PROJECT ON)
+    else()
+        set(MINISAT_MASTER_PROJECT OFF)
+    endif()
+endif ()
+
+# options
+option(MINISAT_BUILD_BINARIES "minisat: build binaries" ${MINISAT_MASTER_PROJECT})
 option(MINISAT_BUILD_TESTING "Build and run MiniSat's tests" ON)
 option(MINISAT_TEST_BENCHMARKS "Register benchmarks with CTest" OFF)
+option(MINISAT_INSTALL "minisat: generate the install target." ${MINISAT_MASTER_PROJECT})
+
 
 include(GNUInstallDirs)
 
@@ -62,38 +75,38 @@ target_include_directories(libminisat
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-# Also build two MiniSat executables
-add_executable(minisat
-    minisat/core/Main.cc
-)
-target_link_libraries(minisat libminisat)
+set(targets libminisat)
+if (MINISAT_BUILD_BINARIES)
+    # Also build two MiniSat executables
+    add_executable(minisat
+        minisat/core/Main.cc
+    )
+    target_link_libraries(minisat libminisat)
 
 
-add_executable(minisat-simp
-    minisat/simp/Main.cc
-)
-target_link_libraries(minisat-simp libminisat)
+    add_executable(minisat-simp
+        minisat/simp/Main.cc
+    )
+    target_link_libraries(minisat-simp libminisat)
+    list(APPEND targets minisat minisat-simp)
+endif()
 
 # Workaround for libstdc++ + Clang + -std=gnu++11 bug.
-set_target_properties(libminisat minisat minisat-simp
+set_target_properties(${targets}
     PROPERTIES
       CXX_EXTENSIONS OFF
 )
 
 
-if ( CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU" )
-    target_compile_options( libminisat PRIVATE -Wall -Wextra )
-    target_compile_options( minisat PRIVATE -Wall -Wextra )
-    target_compile_options( minisat-simp PRIVATE -Wall -Wextra )
-endif()
-if ( CMAKE_CXX_COMPILER_ID MATCHES "MSVC" )
-    target_compile_options( libminisat PRIVATE /W4 /wd4267 )
-    target_compile_definitions( libminisat PRIVATE _CRT_SECURE_NO_WARNINGS )
-    target_compile_options( minisat PRIVATE /W4 /wd4267 )
-    target_compile_definitions( minisat PRIVATE _CRT_SECURE_NO_WARNINGS )
-    target_compile_options( minisat-simp PRIVATE /W4 /wd4267 )
-    target_compile_definitions( minisat-simp PRIVATE _CRT_SECURE_NO_WARNINGS )
-endif()
+foreach (target ${targets})
+    if ( CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU" )
+        target_compile_options( ${target} PRIVATE -Wall -Wextra )
+    endif()
+    if ( CMAKE_CXX_COMPILER_ID MATCHES "MSVC" )
+        target_compile_options( ${target} PRIVATE /W4 /wd4267 )
+        target_compile_definitions( ${target} PRIVATE _CRT_SECURE_NO_WARNINGS )
+    endif()
+endforeach()
 
 ###############
 # Testing
@@ -162,56 +175,59 @@ endif()
 ###############
 # Installation
 ##
-set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/MiniSat)
+if (MINISAT_INSTALL)
+    set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/MiniSat)
 
-install(
-    TARGETS
-      libminisat
-    EXPORT MiniSatTargets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
+    install(
+        TARGETS
+          libminisat
+        EXPORT MiniSatTargets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
 
-install(
-    TARGETS
-      minisat
-      minisat-simp
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
+    if (MINISAT_BUILD_BINARIES)
+        install(
+            TARGETS
+              minisat
+              minisat-simp
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        )
+    endif()
+
+    install(DIRECTORY minisat/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/minisat FILES_MATCHING PATTERN "*.h*")
+
+    install(EXPORT MiniSatTargets
+        FILE MiniSatTargets.cmake
+        NAMESPACE MiniSat::
+        DESTINATION ${INSTALL_CONFIGDIR}
+    )
 
 
-install(DIRECTORY minisat/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/minisat FILES_MATCHING PATTERN "*.h*")
+    #####################
+    # ConfigVersion file
+    ##
+    include(CMakePackageConfigHelpers)
+    write_basic_package_version_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/MiniSatConfigVersion.cmake
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY AnyNewerVersion
+    )
 
-install(EXPORT MiniSatTargets
-    FILE MiniSatTargets.cmake
-    NAMESPACE MiniSat::
-    DESTINATION ${INSTALL_CONFIGDIR}
-)
+    configure_package_config_file(
+        ${CMAKE_CURRENT_LIST_DIR}/CMake/MiniSatConfig.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/MiniSatConfig.cmake
+        INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
+    )
 
-
-#####################
-# ConfigVersion file
-##
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/MiniSatConfigVersion.cmake
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY AnyNewerVersion
-)
-
-configure_package_config_file(
-    ${CMAKE_CURRENT_LIST_DIR}/CMake/MiniSatConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/MiniSatConfig.cmake
-    INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
-)
-
-## Install all the helper files
-install(
-    FILES
-      ${CMAKE_CURRENT_BINARY_DIR}/MiniSatConfig.cmake
-      ${CMAKE_CURRENT_BINARY_DIR}/MiniSatConfigVersion.cmake
-    DESTINATION ${INSTALL_CONFIGDIR}
-)
+    ## Install all the helper files
+    install(
+        FILES
+          ${CMAKE_CURRENT_BINARY_DIR}/MiniSatConfig.cmake
+          ${CMAKE_CURRENT_BINARY_DIR}/MiniSatConfigVersion.cmake
+        DESTINATION ${INSTALL_CONFIGDIR}
+    )
+endif()
