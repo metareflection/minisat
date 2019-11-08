@@ -76,8 +76,9 @@ target_include_directories(libminisat
 )
 
 set(targets libminisat)
-if (MINISAT_BUILD_BINARIES)
+if (MINISAT_BUILD_BINARIES OR (MINISAT_BUILD_TESTING AND BUILD_TESTING) OR (MINISAT_TEST_BENCHMARKS AND BUILD_TESTING))
     # Also build two MiniSat executables
+    # NOTE: `minisat` is used in tests
     add_executable(minisat
         minisat/core/Main.cc
     )
@@ -142,9 +143,8 @@ if (MINISAT_BUILD_TESTING AND BUILD_TESTING)
 endif() # TESTING
 
 
-if (MINISAT_TEST_BENCHMARKS)
+if (MINISAT_TEST_BENCHMARKS AND BUILD_TESTING)
     message(STATUS "Registering benchmarks")
-    include(CTest)
 
     file(READ "${PROJECT_SOURCE_DIR}/tests/inputs/benchmarks.txt" MINISAT_BENCHMARKS)
     string(REGEX REPLACE ";" "\\\\;" MINISAT_BENCHMARKS "${MINISAT_BENCHMARKS}")
