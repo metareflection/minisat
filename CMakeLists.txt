@@ -18,7 +18,7 @@ endif ()
 option(MINISAT_BUILD_BINARIES "minisat: build binaries" ${MINISAT_MASTER_PROJECT})
 option(MINISAT_BUILD_TESTING "Build and run MiniSat's tests" ON)
 option(MINISAT_TEST_BENCHMARKS "Register benchmarks with CTest" OFF)
-option(MINISAT_INSTALL "minisat: generate the install target." ${MINISAT_MASTER_PROJECT})
+option(MINISAT_INSTALL "minisat: generate the install target" ON)
 
 
 include(GNUInstallDirs)
