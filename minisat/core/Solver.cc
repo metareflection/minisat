@@ -713,13 +713,18 @@ lbool Solver::search(int nof_conflicts)
             }
 
             if (next == lit_Undef){
-                // New variable decision:
-                decisions++;
-                next = pickBranchLit();
+                // The hack for mkcdcl: never make a decision; return SAT instead.
+                return l_True;
 
-                if (next == lit_Undef)
-                    // Model found:
-                    return l_True;
+                // The old code:
+
+                //// New variable decision:
+                //decisions++;
+                //next = pickBranchLit();
+
+                //if (next == lit_Undef)
+                    //// Model found:
+                    //return l_True;
             }
 
             // Increase decision level and enqueue 'next'
